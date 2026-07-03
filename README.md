@@ -10,7 +10,9 @@ Unity と Claude Code をつなげて開発するための記録用リポジト�
 - [ ] Unity Hub で新しいプロジェクトを作った
 - [ ] Claude Code（CLI）を PC にインストールした
 - [ ] Unity プロジェクトのフォルダで Claude Code を起動できた（＝①コードを書く連携 完了）
-- [ ] Python（uv）を入れた
+- [ ] Git を入れた
+- [ ] Python 本体と uv を入れた
 - [ ] Unity に MCP パッケージを入れた
-- [ ] Claude Code と Unity をつないだ（＝②エディタ操作の連携 完了）
+- [ ] Unity 側でサーバーを起動した（Toggle MCP Window → Start Server / Ctrl+Shift+M）
+- [ ] Claude Code と Unity をつないだ（`/mcp` で ✓ connected）（＝②エディタ操作の連携 完了）
 - [ ] 「Cubeを作って」で実際に動いた 🎉

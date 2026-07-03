@@ -104,29 +104,48 @@ Windows では PowerShell で1行流すのが一番かんたんです。
 
 使うのは定番の **CoplayDev / unity-mcp** です。
 
-### B-1. Python（uv）を入れる
+### B-0. 【重要】先に Git を入れておく（つまずきポイント①）
 
-Unity MCP は内部で Python を使うので、`uv` というツールを入れます。
+Unity が git URL からパッケージを取ってくるには、パソコンに **Git** が別で入っている必要があります。無いと B-2 が静かに失敗します。
 
-1. PowerShell で：
+1. PowerShell で確認：
+
+   ```powershell
+   git --version
+   ```
+
+   バージョンが出れば入っています → B-1 へ。
+2. 「認識されない」等のエラーなら、https://git-scm.com/download/win から入れる。
+   インストール中の選択肢は**全部そのまま Next でOK**。
+3. **入れたら、Unity を一度完全に閉じて開き直す**（超重要。開きっぱなしだと Git を認識しません）。
+
+### B-1. Python（3.10+）と uv を入れる（つまずきポイント②）
+
+Unity MCP は内部で Python を使います。**Python 本体と uv の両方**が必要です。
+
+1. **uv を入れる**（PowerShell）：
 
    ```powershell
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
 
-2. PowerShell を開き直して確認：
+2. **Python 本体を入れる**：Microsoft Store で「Python 3.12」を検索してインストールが一番かんたん。
+   （python.org から入れる場合は、最初の画面で **「Add python.exe to PATH」に必ずチェック**）
+3. PowerShell を開き直して両方確認：
 
    ```powershell
    uv --version
+   python --version
    ```
 
-   バージョンが出ればOK。
+   両方バージョンが出ればOK。
 
 ### B-2. Unity に MCP パッケージを入れる
 
 1. Unity エディタで、上メニュー **Window → Package Manager** を開く。
-2. 左上の **「＋」ボタン → 「Add package from git URL...」** を選ぶ。
-3. 次のURLを貼って **Add**：
+2. 左上の **「＋」ボタン → 「Install package from git URL...」** を選ぶ
+   （Unity のバージョンにより「Add」表記の場合あり）。
+3. 次のURLを貼って **Install**：
 
    ```
    https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.0.0
@@ -134,35 +153,49 @@ Unity MCP は内部で Python を使うので、`uv` というツールを入れ
 
    （`#v10.0.0` は安定版。最新を試したいなら `#main` でもOK）
 4. インストールが終わると、メニューに **Window → MCP for Unity** が増えます。
+   - 失敗する場合はほぼ B-0 の Git 未インストールが原因。Console（Window → General → Console）の赤いエラーを確認。
 
-### B-3. Unity と Claude Code をつなぐ
+### B-3. 依存関係チェック（Local Setup Window）
 
-1. Unity エディタで **Window → MCP for Unity** を開く。
-2. **「Configure All Detected Clients」**（検出した全クライアントを設定）をクリック。
-   - これで Claude Code 用の接続設定が自動で書き込まれます。
-3. うまく検出されない場合は、PowerShell から手動で追加：
+1. Unity で **Window → MCP for Unity → Local Setup Window** を開く。
+2. **Python** と **UV** が**両方とも緑の●**になっているか確認。
+   - 赤があれば B-1 をやり直し、`Refresh` を押して緑にする。
+3. 「All requirements met!」が出たら次へ。**Claude Code にチェックを入れて `Configure Selected`** を押す。
+
+### B-4. 【最重要】Unity 側のサーバーを起動する（つまずきポイント③）
+
+ここが一番の落とし穴。**「MCP for Unity」のメニューには3つの項目があり、サーバー起動ボタンがあるのは "Toggle MCP Window" の中だけ**です。
+（Local Setup Window / Edit EditorPrefs には起動ボタンはありません）
+
+1. Unity で **Window → MCP for Unity → `Toggle MCP Window`** を開く
+   （ショートカット：**Ctrl + Shift + M**）。
+2. **`Server`** セクションを探す。中に：
+   - `Transport:`（通信方式。既定は HTTP）
+   - `HTTP URL:`（既定 `http://localhost:8080`）
+   - **`Local Server:` の横の `Start Server` ボタン** ← これを押す。
+3. `Start Server` を押すと**黒いターミナル窓**が開いてサーバーが起動します。**その窓は閉じない**。
+4. その下の `Start`（connection-toggle）も押し、状態表示が **Connected** になればOK。
+   - ポート 8080 が他ソフト（Tailscale 等）とぶつかる場合は、URL を `http://localhost:8090` などに変えて Start し直す。
+
+**確認**：PowerShell で `curl http://localhost:8080/health` を打って応答が返ればサーバー稼働中。
+
+### B-5. 接続を確認する
+
+1. **Unity エディタ・プロジェクトは開いたまま**、**サーバーも起動したまま**にしておく。
+2. **必ずプロジェクトフォルダの中で** `claude` を起動する
+   （UnityMCP の設定はそのプロジェクト専用。別フォルダで起動すると出てきません）：
 
    ```powershell
-   claude mcp add UnityMCP -- uvx --python ">=3.11" unity-mcp-server@latest
+   cd "C:\Users\ユーザー名\...\プロジェクト名"
+   claude
    ```
 
-   （B-2 の Unity 側で表示される正式なコマンドがあれば、そちらを優先してください）
-
-### B-4. 接続を確認する
-
-1. **Unity エディタは開いたまま**にしておく（閉じるとつながりません）。
-2. そのプロジェクトフォルダで `claude` を起動。
-3. Claude の中で次を打つ：
-
-   ```
-   /mcp
-   ```
-
-   `UnityMCP`（または coplay 系）が **connected** と出れば成功。
+3. Claude の中で `/mcp` を打つ。
+   `UnityMCP · ✓ connected · (数十) tools` と出れば**成功！**
 4. 仕上げに、こう頼んでみる：
 
    ```
-   原点に Cube を作って、Rigidbody をつけて
+   原点に赤いキューブを作って、Rigidbody をつけて
    ```
 
    Unity のシーンに Cube が現れたら大成功！🎉
@@ -172,10 +205,17 @@ Unity MCP は内部で Python を使うので、`uv` というツールを入れ
 ## つまずいたときのチェックリスト
 
 - **`claude` が見つからない** → PowerShell を開き直す。それでもダメなら再インストール。
-- **`/mcp` に何も出てこない** → Unity エディタが開いているか確認。B-3 をやり直す。
-- **`uv` が見つからない** → PowerShell を開き直す。B-1 をやり直す。
+- **B-2 のパッケージ導入が失敗する** → Git が入っていない（B-0）。Git を入れて Unity を再起動。
+- **`/mcp` に UnityMCP が出てこない** → Claude を**プロジェクトフォルダの中で**起動しているか確認（B-5）。別フォルダだと出ません。
+- **`UnityMCP · ✗ failed`／`Failed to connect`／port 8080 に何もいない** → Unity 側のサーバー未起動。`Toggle MCP Window`（Ctrl+Shift+M）→ `Start Server`（B-4）。
+- **`curl http://localhost:8080/health` が繋がらない** → 同上。サーバーを起動する。
+- **`uv` や `python` が見つからない** → PowerShell を開き直す。B-1 をやり直す。
 - **Unity のバージョンが古い** → Unity Hub から 2022 LTS 以上を入れる。
 - **英語で困る** → Claude に「日本語で説明して」と頼めばOK。エラー文を貼れば直し方も教えてくれます。
+
+> 💡 一度つながっても、**PCを再起動したり Unity を開き直すとサーバーは止まります**。
+> その時は毎回 B-4（`Toggle MCP Window` → `Start Server`）でサーバーを起動してください。
+> Advanced Settings の **「Auto-Start Server on Editor Load」** をオンにしておくと、Unity 起動時に自動で立ち上がって楽です。
 
 ---
 
